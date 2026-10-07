@@ -23,3 +23,4 @@ secrets*.json
 *.engine
 *.bag
 *.db3
+checkpoints/
