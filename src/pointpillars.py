@@ -246,7 +246,13 @@ class PointPillarsDetector:
         self.anchor_cls = torch.tensor([0, 0, 1, 1, 2, 2], device=self.device)
 
     @torch.no_grad()
-    def predict(self, points: np.ndarray, score_thr: float = 0.3, nms_iou_thr: float = 0.1) -> list[dict]:
+    def predict(
+        self,
+        points: np.ndarray,
+        score_thr: float = 0.3,
+        nms_iou_thr: float = 0.1,
+        nms_thr: float | None = None,
+    ) -> list[dict]:
         """Inference on point cloud array (N, 4).
         Returns list of detection dicts:
             name: 'Car' | 'Pedestrian' | 'Cyclist'
@@ -255,6 +261,8 @@ class PointPillarsDetector:
             box3d: [x, y, z, dx, dy, dz, yaw] in LiDAR frame (bottom-center)
             range: distance from sensor in meters
         """
+        if nms_thr is not None:
+            nms_iou_thr = nms_thr
         voxels, num_points, coors = voxelize_pillars(points)
         if len(voxels) == 0:
             return []

@@ -31,8 +31,7 @@ from starter.projection import (
     velo_to_cam,
     cam_to_image,
     project_velo_to_image,
-    perturb_rotation_euler,
-    perturb_translation,
+    perturb_extrinsic,
 )
 from src.pointpillars import (
     PointPillarsDetector,
@@ -41,9 +40,8 @@ from src.pointpillars import (
     draw_box3d_on_image,
     visualize_bev,
     CLASS_COLORS,
-    DEFAULT_CKPT_PATH,
 )
-from src.run_detector import ensure_checkpoint
+from src.run_detector import ensure_checkpoint, DEFAULT_CKPT_PATH
 
 
 # ---------------------------------------------------------
@@ -311,7 +309,7 @@ if mode == "🎯 3D Object Detection (PointPillars)":
         t0 = time.perf_counter()
         if cuda_avail:
             torch.cuda.synchronize()
-        detections = detector.predict(points, score_thr=score_thr, nms_thr=nms_thr)
+        detections = detector.predict(points, score_thr=score_thr, nms_iou_thr=nms_thr)
         if cuda_avail:
             torch.cuda.synchronize()
         e2e_time_ms = (time.perf_counter() - t0) * 1000
@@ -425,8 +423,13 @@ elif mode == "📷 LiDAR-Camera Projection & Perturb":
     calib = fr["calib"]
 
     # Perturb calibration
-    calib_mod = perturb_rotation_euler(calib, yaw_deg, pitch_deg, roll_deg)
-    calib_mod = perturb_translation(calib_mod, dx, dy, dz)
+    calib_mod = perturb_extrinsic(
+        calib,
+        roll_deg=roll_deg,
+        pitch_deg=pitch_deg,
+        yaw_deg=yaw_deg,
+        t_xyz_m=(dx, dy, dz),
+    )
 
     # Project points
     uv, depths, in_img = project_velo_to_image(points, calib_mod, image.shape)
