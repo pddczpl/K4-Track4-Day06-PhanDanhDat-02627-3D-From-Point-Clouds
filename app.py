@@ -16,7 +16,8 @@ import time
 import urllib.request
 
 import cv2
-import matplotlib.cm as cm
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -438,13 +439,13 @@ elif mode == "📷 LiDAR-Camera Projection & Perturb":
         if color_by == "Khoảng cách (Depth)":
             vals = np.clip(depths, 2.0, float(max_depth))
             norm = (vals - 2.0) / (max_depth - 2.0)
-            cmap = cm.get_cmap("turbo")
+            cmap = matplotlib.colormaps["turbo"]
             colors = (cmap(norm)[:, :3] * 255).astype(np.uint8)
             colors_bgr = colors[:, ::-1]  # RGB to BGR
         else:
             ref = points[in_img, 3] if points.shape[1] > 3 else np.zeros(num_pts)
             norm = np.clip(ref, 0.0, 1.0)
-            cmap = cm.get_cmap("viridis")
+            cmap = matplotlib.colormaps["viridis"]
             colors = (cmap(norm)[:, :3] * 255).astype(np.uint8)
             colors_bgr = colors[:, ::-1]
 
