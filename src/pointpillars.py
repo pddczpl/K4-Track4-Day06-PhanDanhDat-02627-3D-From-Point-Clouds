@@ -346,8 +346,10 @@ class PointPillarsDetector:
             results.append({
                 "name": CLASS_NAMES[cid],
                 "class_id": cid,
+                "label": cid,
                 "score": float(sc[idx].item()),
                 "box3d": b,  # [x, y, z, dx, dy, dz, yaw]
+                "box": b,
                 "range": dist,
             })
         return results
@@ -413,43 +415,85 @@ def draw_box3d_on_image(image: np.ndarray, corners_2d: np.ndarray, color=(0, 255
     return out
 
 
-def visualize_bev(points: np.ndarray, detections: list[dict], out_path: str | Path,
-                  pc_range: list[float] = [0.0, -35.0, 65.0, 35.0]):
-    """Render Bird's Eye View (BEV) visualization with LiDAR points and 3D bounding boxes."""
+def visualize_bev(
+    points: np.ndarray,
+    detections: list[dict] | np.ndarray,
+    out_path: str | Path | None = None,
+    pc_range: list[float] = [0.0, -35.0, 65.0, 35.0],
+    **kwargs,
+) -> np.ndarray | None:
+    """Render Bird's Eye View (BEV) visualization with LiDAR points and 3D bounding boxes.
+    If out_path is None, returns (H, W, 3) RGB uint8 image array.
+    """
     fig, ax = plt.subplots(figsize=(10, 8), facecolor="black")
     ax.set_facecolor("black")
 
     # Filter points for BEV
-    mask = (points[:, 0] >= pc_range[0]) & (points[:, 0] <= pc_range[2]) & \
-           (points[:, 1] >= pc_range[1]) & (points[:, 1] <= pc_range[3])
+    mask = (
+        (points[:, 0] >= pc_range[0])
+        & (points[:, 0] <= pc_range[2])
+        & (points[:, 1] >= pc_range[1])
+        & (points[:, 1] <= pc_range[3])
+    )
     pts = points[mask]
 
     # Draw point cloud
-    dist = np.linalg.norm(pts[:, :2], axis=1)
-    ax.scatter(pts[:, 1], pts[:, 0], s=0.3, c=dist, cmap="viridis", alpha=0.6)
+    if len(pts) > 0:
+        dist = np.linalg.norm(pts[:, :2], axis=1)
+        ax.scatter(pts[:, 1], pts[:, 0], s=0.4, c=dist, cmap="viridis", alpha=0.6)
+
+    # Standardize detections into list of dicts
+    det_list = []
+    if isinstance(detections, list):
+        det_list = detections
+    elif isinstance(detections, np.ndarray) and len(detections) > 0:
+        labels_kw = kwargs.get("labels", np.zeros(len(detections), dtype=int))
+        scores_kw = kwargs.get("scores", np.ones(len(detections)))
+        for i, b in enumerate(detections):
+            cid = int(labels_kw[i]) if i < len(labels_kw) else 0
+            sc_val = float(scores_kw[i]) if i < len(scores_kw) else 1.0
+            det_list.append({
+                "name": CLASS_NAMES[cid] if cid < len(CLASS_NAMES) else "Object",
+                "score": sc_val,
+                "box3d": b.tolist() if hasattr(b, "tolist") else list(b),
+            })
 
     # Draw detection boxes
-    for det in detections:
-        b = det["box3d"]
+    for det in det_list:
+        b = det.get("box3d", det.get("box"))
+        if b is None:
+            continue
         corners = box3d_to_corners_lidar(b)  # (8, 3)
         bottom = corners[:4, :2]  # (x, y)
-        # In BEV plot: x is lateral (pts[:, 1]), y is longitudinal (pts[:, 0])
         poly = np.vstack([bottom[[0, 1, 2, 3, 0], 1], bottom[[0, 1, 2, 3, 0], 0]]).T
 
         color = "lime" if det["name"] == "Car" else "cyan" if det["name"] == "Pedestrian" else "yellow"
         ax.plot(poly[:, 0], poly[:, 1], color=color, linewidth=1.8)
-        ax.text(b[1], b[0], f"{det['name']} {det['score']:.2f}", color="white", fontsize=8,
-                bbox=dict(boxstyle="square,pad=0.1", fc=color, ec="none", alpha=0.6))
+        ax.text(
+            b[1],
+            b[0],
+            f"{det['name']} {det['score']:.2f}",
+            color="white",
+            fontsize=8,
+            bbox=dict(boxstyle="square,pad=0.1", fc=color, ec="none", alpha=0.6),
+        )
 
     ax.set_xlim(pc_range[1], pc_range[3])
     ax.set_ylim(pc_range[0], pc_range[2])
     ax.set_xlabel("Lateral Y (meters)", color="white")
     ax.set_ylabel("Forward X (meters)", color="white")
-    ax.set_title(f"LiDAR 3D Object Detection BEV — Detections: {len(detections)}", color="white")
+    ax.set_title(f"LiDAR 3D Object Detection BEV — Detections: {len(det_list)}", color="white")
     ax.tick_params(colors="white")
     ax.grid(True, color="#333333", linestyle="--", linewidth=0.5)
 
     plt.tight_layout()
-    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(str(out_path), dpi=150, facecolor=fig.get_facecolor())
-    plt.close()
+    if out_path is not None:
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(str(out_path), dpi=150, facecolor=fig.get_facecolor())
+        plt.close(fig)
+        return None
+    else:
+        fig.canvas.draw()
+        img = np.asarray(fig.canvas.buffer_rgba())[:, :, :3]
+        plt.close(fig)
+        return img

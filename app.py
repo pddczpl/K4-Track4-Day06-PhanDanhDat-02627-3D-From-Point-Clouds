@@ -334,29 +334,25 @@ if mode == "🎯 3D Object Detection (PointPillars)":
 
         # Render visualizations
         # 1. Camera View with 3D wireframes
-        boxes_lidar = np.array([d["box"] for d in filtered_dets]) if filtered_dets else np.zeros((0, 7))
-        labels_arr = np.array([d["label"] for d in filtered_dets], dtype=int) if filtered_dets else np.zeros(0, dtype=int)
-        scores_arr = np.array([d["score"] for d in filtered_dets]) if filtered_dets else np.zeros(0)
-
-        # Draw predictions on image
         img_vis = image.copy()
         if show_gt and gt_labels:
             img_vis = draw_gt_boxes_cam(img_vis, gt_labels, calib.P2)
 
-        if len(boxes_lidar) > 0:
-            corners_3d = box3d_to_corners_lidar(boxes_lidar)
-            corners_2d = project_box3d_lidar_to_camera(corners_3d, calib)
-            img_vis = draw_box3d_on_image(img_vis, corners_2d, labels_arr, scores_arr)
+        for det in filtered_dets:
+            b = det.get("box3d", det.get("box"))
+            corners_lidar = box3d_to_corners_lidar(b)
+            corners_2d = project_box3d_lidar_to_camera(corners_lidar, calib, image.shape)
+            if corners_2d is not None:
+                color = CLASS_COLORS.get(det["name"], (0, 255, 0))
+                label_text = f"{det['name']} {det['score']:.2f}"
+                img_vis = draw_box3d_on_image(img_vis, corners_2d, color=color, label=label_text)
 
         # 2. BEV Map
         bev_img = visualize_bev(
             points,
-            boxes_lidar,
-            labels_arr,
-            scores_arr,
-            range_x=(0.0, float(bev_range)),
-            range_y=(-35.0, 35.0),
-            resolution=0.10,
+            filtered_dets,
+            out_path=None,
+            pc_range=[0.0, -35.0, float(bev_range), 35.0],
         )
 
         col_left, col_right = st.columns([1.1, 0.9])
@@ -370,15 +366,16 @@ if mode == "🎯 3D Object Detection (PointPillars)":
 
         with col_right:
             st.markdown("### 🗺️ LiDAR Bird's-Eye View (BEV)")
-            st.image(bev_img, channels="BGR", use_container_width=True)
-            st.caption(f"Vùng nhìn BEV: X ∈ [0, {bev_range}]m, Y ∈ [-35, 35]m. Độ phân giải 0.10m/pixel")
+            if bev_img is not None:
+                st.image(bev_img, channels="RGB", use_container_width=True)
+            st.caption(f"Vùng nhìn BEV: X ∈ [0, {bev_range}]m, Y ∈ [-35, 35]m. Độ phân giải hiển thị cao")
 
         # Detailed Detections Table
         st.markdown("### 📋 Danh sách chi tiết các vật thể phát hiện")
         if filtered_dets:
             det_rows = []
             for i, d in enumerate(filtered_dets):
-                b = d["box"]
+                b = d.get("box3d", d.get("box"))
                 det_rows.append({
                     "#": i + 1,
                     "Class": d["name"],
