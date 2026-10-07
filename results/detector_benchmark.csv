@@ -1,0 +1,11 @@
+frame_id,config,score_threshold,points_count,gt_object_count,detected_objects,cars,pedestrians,cyclists,mean_score,max_range_m,latency_mean_ms,latency_p50_ms,latency_p95_ms,fps,hardware,status
+000001,Conf_A (score_thr=0.3),0.3,120268,3,6,4,2,0,0.367,61.14,130.03,126.71,152.67,7.9,NVIDIA GeForce RTX 3060,PASS
+000001,Conf_B (score_thr=0.5),0.5,120268,3,1,1,0,0,0.552,61.14,132.97,132.73,151.78,7.5,NVIDIA GeForce RTX 3060,PASS
+000008,Conf_A (score_thr=0.3),0.3,122555,6,14,10,3,1,0.666,59.14,109.05,106.2,123.61,9.4,NVIDIA GeForce RTX 3060,PASS
+000008,Conf_B (score_thr=0.5),0.5,122555,6,10,10,0,0,0.796,59.14,111.23,108.72,124.73,9.2,NVIDIA GeForce RTX 3060,PASS
+000011,Conf_A (score_thr=0.3),0.3,108004,6,14,4,8,2,0.554,43.62,107.09,104.75,125.1,9.5,NVIDIA GeForce RTX 3060,PASS
+000011,Conf_B (score_thr=0.5),0.5,108004,6,9,4,4,1,0.653,40.67,107.7,102.94,126.95,9.7,NVIDIA GeForce RTX 3060,PASS
+000012,Conf_A (score_thr=0.3),0.3,120007,2,6,2,2,2,0.452,66.05,129.95,126.79,152.27,7.9,NVIDIA GeForce RTX 3060,PASS
+000012,Conf_B (score_thr=0.5),0.5,120007,2,2,1,0,1,0.676,59.4,127.62,125.13,144.95,8.0,NVIDIA GeForce RTX 3060,PASS
+000049,Conf_A (score_thr=0.3),0.3,113691,18,26,21,5,0,0.703,35.89,63.23,61.76,70.21,16.2,NVIDIA GeForce RTX 3060,PASS
+000049,Conf_B (score_thr=0.5),0.5,113691,18,19,17,2,0,0.824,35.89,85.11,64.8,133.09,15.4,NVIDIA GeForce RTX 3060,PASS
